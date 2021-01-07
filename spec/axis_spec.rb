@@ -9,7 +9,7 @@ describe Squid::Axis do
   let(:series) { [[-1.0, 9.9, 3.0], [nil, 2.0, -50.0]] }
 
   describe '#labels' do
-    subject(:axis) { Squid::Axis.new series, options }
+    subject(:axis) { Squid::Axis.new series, **options }
     let(:labels) { axis.labels }
 
     describe 'given 0 steps' do
