@@ -23,15 +23,18 @@ module Squid
     # Draws the graph legend with the given labels.
     # @param [Array<LegendItem>] The labels to write as part of the legend.
     def legend(labels, height:, right: 0, colors: [])
-      left = @pdf.bounds.width/2
-      box(x: left, y: @pdf.bounds.top, w: left, h: height) do
-        x = @pdf.bounds.right - right
+      # TODO:
+      # - calculate required height ahead of time, make a big enough box
+      left = @pdf.bounds.width
+      box(x: 0, y: @pdf.bounds.top, w: left, h: height) do
+        original_x = x = @pdf.bounds.right - right
+        y = @pdf.bounds.height
         options = {size: 7, height: @pdf.bounds.height, valign: :center}
         labels.each.with_index do |label, i|
           index = labels.size - 1 - i
           series_color = colors.fetch index, series_colors(index)
           color = Array.wrap(series_color).first
-          x = legend_item label, x, color, options
+          x, y = legend_item original_x, label, x, y, color, options
         end
       end
     end
@@ -169,15 +172,21 @@ module Squid
     # Draws a single item of the legend, which includes the label and the
     # symbol with the matching color. Labels are written from right to left.
     # @param
-    def legend_item(label, x, color, options)
+    def legend_item(original_x, label, x, y, color, options)
       size, symbol_padding, entry_padding = 5, 3, 12
-      x -= @pdf.width_of(label, size: 7).ceil
-      @pdf.text_box label, options.merge(at: [x, @pdf.bounds.height])
+      label_width = @pdf.width_of(label, size: 7).ceil
+      if x < label_width
+        x = original_x
+        y -= 10
+      end
+      x -= label_width
+      @pdf.text_box label, options.merge(at: [x, y])
       x -= (symbol_padding + size)
       with fill_color: color do
-        @pdf.fill_rectangle [x, @pdf.bounds.height - size], size, size
+        @pdf.fill_rectangle [x, y - size], size, size
       end
-      x - entry_padding
+      x -= entry_padding
+      return x, y
     end
 
     # Convenience method to wrap a block by setting and unsetting a Prawn
