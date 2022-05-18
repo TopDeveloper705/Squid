@@ -65,20 +65,46 @@ module Squid
       end
     end
 
-    def categories(labels, every:, ticks:)
-      labels.each.with_index do |label, index|
-        w = width / labels.count.to_f
-        x = left + w * (index)
-        padding = 2
-        options = category_options.merge(width: every*w-2*padding, at: [x+padding-w*(every/2.0-0.5), @bottom])
-        @pdf.text_box label, options if (index % every).zero?
+    def categories(labels, every:, ticks:, domain_labels:, strftime:)
+      label_factor = labels.count.to_f
+      w = width / label_factor
+      padding = 2
+      numeric_domain = labels.all? { |l| l.is_a?(Numeric) }
+      if numeric_domain
+        label_baseline = labels.first.to_f
+        label_offset_factor = labels.last - label_baseline
+      else
+        labels
+      end
+
+      labels_to_draw = domain_labels || labels
+
+      labels_to_draw.each.with_index do |label, index|
+        label_offset = if numeric_domain
+          ((label - label_baseline) / label_offset_factor) * (labels.size - 1)
+        else
+          index
+        end
+        x = left + w * (label_offset)
+        options = category_options.merge(
+          {
+            width: (every * w) - (2 * padding),
+            at: [x + padding - (w *(every/2.0-0.5)), @bottom]
+          }
+        )
+        label_text = if strftime
+          Time.at(label).strftime(strftime)
+        else
+          label.to_s
+        end
+        @pdf.text_box label_text, options if (index % every).zero?
         @pdf.stroke_vertical_line @bottom, @bottom - 2, at: x + w/2 if ticks
       end
     end
 
     def points(series, options = {})
       items(series, **options) do |point, w, i, padding|
-        x, y = (point.index + 0.5)*w + left, point.y + @bottom
+        x, y = ((point.x + 0.5)*w) + left, point.y + @bottom
         @pdf.fill_circle [x, y], 5
       end
     end
@@ -88,17 +114,24 @@ module Squid
       line_widths = options.delete(:line_widths) { [] }
       items(series, **options) do |point, w, i, padding|
         prev_x, prev_y = x, y
-        x, y = (point.index + 0.5)*w + left, point.y + @bottom
+        x = ((point.x + 0.5)*w) + left
+        y = point.y + @bottom
         line_width = line_widths.fetch i, 3
         with line_width: line_width, cap_style: :round do
-          @pdf.line [prev_x, prev_y], [x,y] unless point.index.zero? || prev_y.nil? || prev_x > x
+          if point.index.zero? || prev_y.nil? || prev_x > x
+            # Don't draw a line to this, either:
+            # - It's the first point
+            # - The previous point was invalid (no y value or, somehow, the previous x value is greater than this x value)
+          else
+            @pdf.line [prev_x, prev_y], [x,y]
+          end
         end
       end
     end
 
     def stacks(series, options = {})
       items(series, **options.merge(fill: true)) do |point, w, i, padding|
-        x, y = point.index*w + padding + left, point.y + @bottom
+        x, y = (point.x*w) + padding + left, point.y + @bottom
         @pdf.fill_rectangle [x, y], w - 2*padding, point.height
       end
     end
@@ -106,7 +139,7 @@ module Squid
     def columns(series, options = {})
       items(series, **options.merge(fill: true, count: series.size)) do |point, w, i, padding|
         item_w = (w - 2 * padding)/ series.size
-        x, y = point.index*w + padding + left + i*item_w, point.y + @bottom
+        x, y = (point.x*w) + padding + left + i*item_w, point.y + @bottom
         @pdf.fill_rectangle [x, y], item_w, point.height
       end
     end
@@ -162,7 +195,7 @@ module Squid
         options = [{size: 10, styles: [:bold], text: point.label}]
         position = {align: :center, valign: :bottom, height: 20}
         position[:width] = (w - 2*padding) / count
-        x = left + point.index*w + padding
+        x = left + (point.x * w) + padding
         x += index * position[:width] if count > 1
         position[:at] = [x, point.y + @bottom + 24]
         @pdf.formatted_text_box options, position

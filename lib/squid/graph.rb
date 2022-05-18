@@ -13,7 +13,7 @@ module Squid
   class Graph
     extend Settings
     has_settings :baseline, :border, :chart, :colors, :every, :formats, :height
-    has_settings :legend, :line_widths, :steps, :ticks, :type, :labels, :min, :max
+    has_settings :legend, :line_widths, :steps, :ticks, :type, :labels, :min, :max, :domain_labels, :strftime
 
     def initialize(document, data = {}, settings = {})
       @data, @settings = data, settings
@@ -54,8 +54,8 @@ module Squid
     end
 
     def draw_categories
-      labels = @data.values.first.keys.map{|key| key.to_s}
-      @plot.categories labels, every: every, ticks: ticks
+      labels = @data.values.map(&:keys).flatten.uniq.sort
+      @plot.categories labels, domain_labels: domain_labels, every: every, strftime: strftime, ticks: ticks
       @plot.horizontal_line 0.0
     end
 
@@ -65,7 +65,11 @@ module Squid
     end
 
     def draw_chart(axis, second_axis: false)
-      args = {minmax: axis.minmax, height: grid_height, stack: stack?}
+      args = {
+        minmax: axis.minmax,
+        height: grid_height,
+        stack: stack?,
+      }
       args[:labels] = items_of labels, skip_first_if: second_axis
       args[:formats] = items_of formats, skip_first_if: second_axis
       points = Point.for axis.data, **args
@@ -95,7 +99,7 @@ module Squid
     end
 
     def axis(first:, last:)
-      series = @data.values[first, last].map(&:values)
+      series = @data.values[first, last]
       options = {steps: steps, stack: stack?, format: formats[first], min: min, max: max}
       Axis.new(series, **options) {|label| @plot.width_of label}
     end

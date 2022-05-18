@@ -52,6 +52,14 @@ module Squid
       -> (values) { values.split.map{|value| proc ? proc.call(value) : value} }
     end
 
+    def self.optional_array
+      -> (values) { values ? array.call(values) : nil }
+    end
+
+    def self.optional_string
+      -> (value) { value }
+    end
+
     ATTRIBUTES = {
       baseline:     {as: boolean,        default: 'true'},
       border:       {as: boolean,        default: 'false'},
@@ -68,6 +76,8 @@ module Squid
       type:         {as: symbol,         default: 'column'},
       min:          {as: optional_integer, default: nil},
       max:          {as: optional_integer, default: nil},
+      domain_labels:{as: optional_array, default: nil},
+      strftime:      {as: optional_string, default: nil},
     }
 
     attr_accessor *ATTRIBUTES.keys

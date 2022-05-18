@@ -7,7 +7,10 @@ describe Squid::Point do
   let(:labels) { [false] }
   let(:stack?) { false }
   let(:formats) { [:percentage, :seconds] }
-  let(:series) { [[-10.0, 109.9, 30.0], [nil, 20.0, -50.0]] }
+  let(:series) { [
+    { 1 => -10.0, 2 => 109.9, 3 => 30.0 },
+    { 1 => nil, 2 => 20.0, 3 => -50.0 },
+  ] }
 
   describe '.for' do
     subject(:points) { Squid::Point.for series, **options }
@@ -62,7 +65,10 @@ describe Squid::Point do
 
     context "given a positive min" do
       let(:minmax) { [100, 150] }
-      let(:series) { [[110.0, 100, 130.0], [nil, 120.0, 150.0]] }
+      let(:series) { [
+        { 1 => 110.0, 2 => 100, 3 => 130.0 },
+        { 1 => nil, 2 => 120.0, 3 => 150.0 },
+      ] }
 
       it 'generates y values relative to the minimum' do
         expect(points.first.map &:y).to eq [20.0, 0.0, 60.0]

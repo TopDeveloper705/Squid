@@ -60,9 +60,9 @@ module Squid
 
     def values
       @values ||= if @stack
-        @data.transpose.map{|a| a.compact.partition{|n| n < 0}.map(&:sum)}.transpose
+        @data.map(&:values).transpose.map{|a| a.compact.partition{|n| n < 0}.map(&:sum)}.transpose
       else
-        [@data.flatten.compact]
+        [@data.map(&:values).flatten.compact]
       end
     end
 
