@@ -93,7 +93,8 @@ module Squid
           }
         )
         label_text = if strftime
-          Time.at(label).strftime(strftime)
+          # TODO this only works in Rails
+          Time.zone.at(label).strftime(strftime)
         else
           label.to_s
         end
